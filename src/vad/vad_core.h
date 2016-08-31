@@ -15,7 +15,7 @@
 #ifndef COMMON_AUDIO_VAD_VAD_CORE_H_
 #define COMMON_AUDIO_VAD_VAD_CORE_H_
 
-#include "common_audio/signal_processing/include/signal_processing_library.h"
+#include "../signal_processing/signal_processing_library.h"
 
 enum { kNumChannels = 6 };   // Number of frequency bands (named channels).
 enum { kNumGaussians = 2 };  // Number of Gaussians per channel in the GMM.

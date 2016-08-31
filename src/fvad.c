@@ -8,21 +8,30 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "common_audio/vad/include/webrtc_vad.h"
+#include "../include/fvad.h"
 
 #include <stdlib.h>
-#include <string.h>
-
-#include "common_audio/signal_processing/include/signal_processing_library.h"
-#include "common_audio/vad/vad_core.h"
+#include "vad/vad_core.h"
 
 static const int kInitCheck = 42;
 static const int kValidRates[] = { 8000, 16000, 32000, 48000 };
 static const size_t kRatesSize = sizeof(kValidRates) / sizeof(*kValidRates);
 static const int kMaxFrameLengthMs = 30;
 
-VadInst* WebRtcVad_Create() {
-  VadInstT* self = (VadInstT*)malloc(sizeof(VadInstT));
+int fvad_Create(VadInst** handle) {
+  VadInstT* self = NULL;
+
+  if (handle == NULL) {
+    return -1;
+  }
+
+  *handle = NULL;
+  self = (VadInstT*) malloc(sizeof(VadInstT));
+  *handle = (VadInst*) self;
+
+  if (self == NULL) {
+    return -1;
+  }
 
   WebRtcSpl_Init();
   self->init_flag = 0;
@@ -30,7 +39,7 @@ VadInst* WebRtcVad_Create() {
   return (VadInst*)self;
 }
 
-void WebRtcVad_Free(VadInst* handle) {
+void fvad_Free(VadInst* handle) {
   free(handle);
 }
 
@@ -41,7 +50,7 @@ int WebRtcVad_Init(VadInst* handle) {
 }
 
 // TODO(bjornv): Move WebRtcVad_set_mode_core() code here.
-int WebRtcVad_set_mode(VadInst* handle, int mode) {
+int fvad_set_mode(VadInst* handle, int mode) {
   VadInstT* self = (VadInstT*) handle;
 
   if (handle == NULL) {
@@ -54,8 +63,8 @@ int WebRtcVad_set_mode(VadInst* handle, int mode) {
   return WebRtcVad_set_mode_core(self, mode);
 }
 
-int WebRtcVad_Process(VadInst* handle, int fs, const int16_t* audio_frame,
-                      size_t frame_length) {
+int fvad_Process(VadInst* handle, int fs, const int16_t* audio_frame,
+                      int frame_length) {
   int vad = -1;
   VadInstT* self = (VadInstT*) handle;
 
@@ -69,7 +78,7 @@ int WebRtcVad_Process(VadInst* handle, int fs, const int16_t* audio_frame,
   if (audio_frame == NULL) {
     return -1;
   }
-  if (WebRtcVad_ValidRateAndFrameLength(fs, frame_length) != 0) {
+  if (fvad_ValidRateAndFrameLength(fs, frame_length) != 0) {
     return -1;
   }
 
@@ -89,7 +98,7 @@ int WebRtcVad_Process(VadInst* handle, int fs, const int16_t* audio_frame,
   return vad;
 }
 
-int WebRtcVad_ValidRateAndFrameLength(int rate, size_t frame_length) {
+int fvad_ValidRateAndFrameLength(int rate, int frame_length) {
   int return_value = -1;
   size_t i;
   int valid_length_ms;

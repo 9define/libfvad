@@ -8,9 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "common_audio/vad/vad_gmm.h"
-
-#include "common_audio/signal_processing/include/signal_processing_library.h"
+#include "vad_gmm.h"
+#include "../signal_processing/signal_processing_library.h"
 
 static const int32_t kCompVar = 22005;
 static const int16_t kLog2Exp = 5909;  // log2(exp(1)) in Q12.
