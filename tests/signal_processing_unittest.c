@@ -8,182 +8,192 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <algorithm>
+#include "../src/signal_processing/signal_processing_library.h"
+#include "test.h"
 
-#include "common_audio/signal_processing/include/signal_processing_library.h"
-#include "rtc_base/strings/string_builder.h"
-#include "test/gtest.h"
+#define kVector16Size 9
+static const int16_t vector16[kVector16Size] = {1, -15511, 4323, 1963,
+  WEBRTC_SPL_WORD16_MAX, 0, WEBRTC_SPL_WORD16_MIN + 5, -3333, 345};
 
-static const size_t kVector16Size = 9;
-static const int16_t vector16[kVector16Size] = {1,
-                                                -15511,
-                                                4323,
-                                                1963,
-                                                WEBRTC_SPL_WORD16_MAX,
-                                                0,
-                                                WEBRTC_SPL_WORD16_MIN + 5,
-                                                -3333,
-                                                345};
 
-class SplTest : public testing::Test {
- protected:
-  SplTest() { WebRtcSpl_Init(); }
-  ~SplTest() override {}
-};
+#ifdef TEST_SPL_MACRO
+void test_main() {
 
-TEST_F(SplTest, MacroTest) {
-  // Macros with inputs.
-  int A = 10;
-  int B = 21;
-  int a = -3;
-  int b = WEBRTC_SPL_WORD32_MAX;
+    WebRtcSpl_Init();
 
-  EXPECT_EQ(10, WEBRTC_SPL_MIN(A, B));
-  EXPECT_EQ(21, WEBRTC_SPL_MAX(A, B));
+    // Macros with inputs.
+    int A = 10;
+    int B = 21;
+    int a = -3;
+    int b = WEBRTC_SPL_WORD32_MAX;
+    // int nr = 2;
+    // int d_ptr2 = 0;
 
-  EXPECT_EQ(3, WEBRTC_SPL_ABS_W16(a));
-  EXPECT_EQ(3, WEBRTC_SPL_ABS_W32(a));
+    EXPECT_EQ(10, WEBRTC_SPL_MIN(A, B));
+    EXPECT_EQ(21, WEBRTC_SPL_MAX(A, B));
 
-  EXPECT_EQ(-63, WEBRTC_SPL_MUL(a, B));
-  EXPECT_EQ(2147483651u, WEBRTC_SPL_UMUL(a, b));
-  b = WEBRTC_SPL_WORD16_MAX >> 1;
-  EXPECT_EQ(4294918147u, WEBRTC_SPL_UMUL_32_16(a, b));
-  EXPECT_EQ(-49149, WEBRTC_SPL_MUL_16_U16(a, b));
+    EXPECT_EQ(3, WEBRTC_SPL_ABS_W16(a));
+    EXPECT_EQ(3, WEBRTC_SPL_ABS_W32(a));
 
-  a = b;
-  b = -3;
+    // libfvad: WEBRTC_SPL_GET_BYTE and WEBRTC_SPL_SET_BYTE removed
+    // EXPECT_EQ(0, WEBRTC_SPL_GET_BYTE(&B, nr));
+    // WEBRTC_SPL_SET_BYTE(&d_ptr2, 1, nr);
+    // EXPECT_EQ(65536, d_ptr2);
 
-  EXPECT_EQ(-1, WEBRTC_SPL_MUL_16_32_RSFT16(a, b));
-  EXPECT_EQ(-1, WEBRTC_SPL_MUL_16_32_RSFT15(a, b));
-  EXPECT_EQ(-3, WEBRTC_SPL_MUL_16_32_RSFT14(a, b));
-  EXPECT_EQ(-24, WEBRTC_SPL_MUL_16_32_RSFT11(a, b));
+    EXPECT_EQ(-63, WEBRTC_SPL_MUL(a, B));
+    EXPECT_EQ(-2147483645, WEBRTC_SPL_MUL(a, b));
+    EXPECT_EQ(2147483651u, WEBRTC_SPL_UMUL(a, b));
+    b = WEBRTC_SPL_WORD16_MAX >> 1;
+    EXPECT_EQ(1073627139u, WEBRTC_SPL_UMUL_16_16(a, b));
+    EXPECT_EQ(4294918147u, WEBRTC_SPL_UMUL_32_16(a, b));
+    EXPECT_EQ(65535u, WEBRTC_SPL_UMUL_32_16_RSFT16(a, b));
+    EXPECT_EQ(-49149, WEBRTC_SPL_MUL_16_U16(a, b));
 
-  EXPECT_EQ(-12288, WEBRTC_SPL_MUL_16_16_RSFT(a, b, 2));
-  EXPECT_EQ(-12287, WEBRTC_SPL_MUL_16_16_RSFT_WITH_ROUND(a, b, 2));
+    a = b;
+    b = -3;
+    EXPECT_EQ(-5461, WEBRTC_SPL_DIV(a, b));
+    EXPECT_EQ(0u, WEBRTC_SPL_UDIV(a, b));
 
-  EXPECT_EQ(21, WEBRTC_SPL_SAT(a, A, B));
-  EXPECT_EQ(21, WEBRTC_SPL_SAT(a, B, A));
+    EXPECT_EQ(-1, WEBRTC_SPL_MUL_16_32_RSFT16(a, b));
+    EXPECT_EQ(-1, WEBRTC_SPL_MUL_16_32_RSFT15(a, b));
+    EXPECT_EQ(-3, WEBRTC_SPL_MUL_16_32_RSFT14(a, b));
+    EXPECT_EQ(-24, WEBRTC_SPL_MUL_16_32_RSFT11(a, b));
 
-  // Shifting with negative numbers allowed
-  int shift_amount = 1;  // Workaround compiler warning using variable here.
-  // Positive means left shift
-  EXPECT_EQ(32766, WEBRTC_SPL_SHIFT_W32(a, shift_amount));
+    int a32a = (WEBRTC_SPL_WORD32_MAX >> 16);
+    int a32b = (WEBRTC_SPL_WORD32_MAX & 0x0000ffff);
+    EXPECT_EQ(5, WEBRTC_SPL_MUL_32_32_RSFT32(a32a, a32b, A));
 
-  // Shifting with negative numbers not allowed
-  // We cannot do casting here due to signed/unsigned problem
-  EXPECT_EQ(32766, WEBRTC_SPL_LSHIFT_W32(a, 1));
+    EXPECT_EQ(-12288, WEBRTC_SPL_MUL_16_16_RSFT(a, b, 2));
+    EXPECT_EQ(-12287, WEBRTC_SPL_MUL_16_16_RSFT_WITH_ROUND(a, b, 2));
 
-  EXPECT_EQ(8191u, WEBRTC_SPL_RSHIFT_U32(a, 1));
+    EXPECT_EQ(16380, WEBRTC_SPL_ADD_SAT_W32(a, b));
+    EXPECT_EQ(21, WEBRTC_SPL_SAT(a, A, B));
+    EXPECT_EQ(21, WEBRTC_SPL_SAT(a, B, A));
+    EXPECT_EQ(-49149, WEBRTC_SPL_MUL_32_16(a, b));
 
-  EXPECT_EQ(1470, WEBRTC_SPL_RAND(A));
+    EXPECT_EQ(16386, WEBRTC_SPL_SUB_SAT_W32(a, b));
+    EXPECT_EQ(16380, WEBRTC_SPL_ADD_SAT_W16(a, b));
 
-  EXPECT_EQ(-49149, WEBRTC_SPL_MUL_16_16(a, b));
-  EXPECT_EQ(1073676289,
-            WEBRTC_SPL_MUL_16_16(WEBRTC_SPL_WORD16_MAX, WEBRTC_SPL_WORD16_MAX));
-  EXPECT_EQ(1073709055, WEBRTC_SPL_MUL_16_32_RSFT16(WEBRTC_SPL_WORD16_MAX,
-                                                    WEBRTC_SPL_WORD32_MAX));
-  EXPECT_EQ(1073741824, WEBRTC_SPL_MUL_16_32_RSFT16(WEBRTC_SPL_WORD16_MIN,
-                                                    WEBRTC_SPL_WORD32_MIN));
-#ifdef WEBRTC_ARCH_ARM_V7
-  EXPECT_EQ(-1073741824, WEBRTC_SPL_MUL_16_32_RSFT16(WEBRTC_SPL_WORD16_MIN,
-                                                     WEBRTC_SPL_WORD32_MAX));
+    // Shifting with negative numbers allowed
+    int shift_amount = 1;  // Workaround compiler warning using variable here.
+    // Positive means left shift
+    EXPECT_EQ(32766, WEBRTC_SPL_SHIFT_W32(a, shift_amount));
+
+    // Shifting with negative numbers not allowed
+    // We cannot do casting here due to signed/unsigned problem
+    EXPECT_EQ(8191, WEBRTC_SPL_RSHIFT_W16(a, 1));
+    EXPECT_EQ(32766, WEBRTC_SPL_LSHIFT_W16(a, 1));
+    EXPECT_EQ(8191, WEBRTC_SPL_RSHIFT_W32(a, 1));
+    EXPECT_EQ(32766, WEBRTC_SPL_LSHIFT_W32(a, 1));
+
+    EXPECT_EQ(8191u, WEBRTC_SPL_RSHIFT_U32(a, 1));
+    EXPECT_EQ(32766u, WEBRTC_SPL_LSHIFT_U32(a, 1));
+
+    EXPECT_EQ(1470, WEBRTC_SPL_RAND(A));
+
+    EXPECT_EQ(-49149, WEBRTC_SPL_MUL_16_16(a, b));
+    EXPECT_EQ(1073676289, WEBRTC_SPL_MUL_16_16(WEBRTC_SPL_WORD16_MAX,
+                                               WEBRTC_SPL_WORD16_MAX));
+    EXPECT_EQ(1073709055, WEBRTC_SPL_MUL_16_32_RSFT16(WEBRTC_SPL_WORD16_MAX,
+                                                      WEBRTC_SPL_WORD32_MAX));
+    EXPECT_EQ(1073741824, WEBRTC_SPL_MUL_16_32_RSFT16(WEBRTC_SPL_WORD16_MIN,
+                                                      WEBRTC_SPL_WORD32_MIN));
+#if 0 // #ifdef WEBRTC_ARCH_ARM_V7
+    EXPECT_EQ(-1073741824,
+              WEBRTC_SPL_MUL_16_32_RSFT16(WEBRTC_SPL_WORD16_MIN,
+                                          WEBRTC_SPL_WORD32_MAX));
+    EXPECT_EQ(0x3fffffff, WEBRTC_SPL_MUL_32_32_RSFT32(WEBRTC_SPL_WORD16_MAX,
+              0xffff, WEBRTC_SPL_WORD32_MAX));
 #else
   EXPECT_EQ(-1073741823, WEBRTC_SPL_MUL_16_32_RSFT16(WEBRTC_SPL_WORD16_MIN,
                                                      WEBRTC_SPL_WORD32_MAX));
 #endif
 }
+#endif // TEST_SPL_MACRO
 
-TEST_F(SplTest, InlineTest) {
-  int16_t a16 = 121;
-  int16_t b16 = -17;
-  int32_t a32 = 111121;
-  int32_t b32 = -1711;
 
-  EXPECT_EQ(17, WebRtcSpl_GetSizeInBits(a32));
+#ifdef TEST_SPL_INLINE
+void test_main() {
 
-  EXPECT_EQ(0, WebRtcSpl_NormW32(0));
-  EXPECT_EQ(31, WebRtcSpl_NormW32(-1));
-  EXPECT_EQ(0, WebRtcSpl_NormW32(WEBRTC_SPL_WORD32_MIN));
-  EXPECT_EQ(14, WebRtcSpl_NormW32(a32));
+    WebRtcSpl_Init();
 
-  EXPECT_EQ(0, WebRtcSpl_NormW16(0));
-  EXPECT_EQ(15, WebRtcSpl_NormW16(-1));
-  EXPECT_EQ(0, WebRtcSpl_NormW16(WEBRTC_SPL_WORD16_MIN));
-  EXPECT_EQ(4, WebRtcSpl_NormW16(b32));
-  for (int ii = 0; ii < 15; ++ii) {
-    int16_t value = 1 << ii;
-    EXPECT_EQ(14 - ii, WebRtcSpl_NormW16(value));
-    EXPECT_EQ(15 - ii, WebRtcSpl_NormW16(-value));
-  }
+    int16_t a16 = 121;
+    int16_t b16 = -17;
+    int32_t a32 = 111121;
+    int32_t b32 = -1711;
+    // char bVersion[8];
 
-  EXPECT_EQ(0, WebRtcSpl_NormU32(0u));
-  EXPECT_EQ(0, WebRtcSpl_NormU32(0xffffffff));
-  EXPECT_EQ(15, WebRtcSpl_NormU32(static_cast<uint32_t>(a32)));
+    EXPECT_EQ(17, WebRtcSpl_GetSizeInBits(a32));
 
-  EXPECT_EQ(104, WebRtcSpl_AddSatW16(a16, b16));
-  EXPECT_EQ(138, WebRtcSpl_SubSatW16(a16, b16));
+    EXPECT_EQ(0, WebRtcSpl_NormW32(0));
+    EXPECT_EQ(31, WebRtcSpl_NormW32(-1));
+    EXPECT_EQ(0, WebRtcSpl_NormW32(WEBRTC_SPL_WORD32_MIN));
+    EXPECT_EQ(14, WebRtcSpl_NormW32(a32));
+
+    EXPECT_EQ(0, WebRtcSpl_NormW16(0));
+    EXPECT_EQ(15, WebRtcSpl_NormW16(-1));
+    EXPECT_EQ(0, WebRtcSpl_NormW16(WEBRTC_SPL_WORD16_MIN));
+    EXPECT_EQ(4, WebRtcSpl_NormW16(b32));
+
+    EXPECT_EQ(0, WebRtcSpl_NormU32(0));
+    EXPECT_EQ(0, WebRtcSpl_NormU32(-1));
+    EXPECT_EQ(0, WebRtcSpl_NormU32(WEBRTC_SPL_WORD32_MIN));
+    EXPECT_EQ(15, WebRtcSpl_NormU32(a32));
+
+    EXPECT_EQ(104, WebRtcSpl_AddSatW16(a16, b16));
+    EXPECT_EQ(138, WebRtcSpl_SubSatW16(a16, b16));
+
+    EXPECT_EQ(109410, WebRtcSpl_AddSatW32(a32, b32));
+    EXPECT_EQ(112832, WebRtcSpl_SubSatW32(a32, b32));
+
+    a32 = 0x80000000;
+    b32 = 0x80000000;
+    // Cast to signed int to avoid compiler complaint on gtest.h.
+    EXPECT_EQ(0x80000000, WebRtcSpl_AddSatW32(a32, b32));
+    a32 = 0x7fffffff;
+    b32 = 0x7fffffff;
+    EXPECT_EQ(0x7fffffff, WebRtcSpl_AddSatW32(a32, b32));
+    a32 = 0;
+    b32 = 0x80000000;
+    EXPECT_EQ(0x7fffffff, WebRtcSpl_SubSatW32(a32, b32));
+    a32 = 0x7fffffff;
+    b32 = 0x80000000;
+    EXPECT_EQ(0x7fffffff, WebRtcSpl_SubSatW32(a32, b32));
+    a32 = 0x80000000;
+    b32 = 0x7fffffff;
+    EXPECT_EQ(0x80000000, WebRtcSpl_SubSatW32(a32, b32));
+
+    // libfvad: WebRtcSpl_get_version not included
+    // EXPECT_EQ(0, WebRtcSpl_get_version(bVersion, 8));
 }
+#endif // TEST_SPL_INLINE
 
-TEST_F(SplTest, AddSubSatW32) {
-  static constexpr int32_t kAddSubArgs[] = {
-      INT32_MIN, INT32_MIN + 1, -3,       -2, -1, 0, 1, -1, 2,
-      3,         INT32_MAX - 1, INT32_MAX};
-  for (int32_t a : kAddSubArgs) {
-    for (int32_t b : kAddSubArgs) {
-      const int64_t sum = std::max<int64_t>(
-          INT32_MIN, std::min<int64_t>(INT32_MAX, static_cast<int64_t>(a) + b));
-      const int64_t diff = std::max<int64_t>(
-          INT32_MIN, std::min<int64_t>(INT32_MAX, static_cast<int64_t>(a) - b));
-      rtc::StringBuilder ss;
-      ss << a << " +/- " << b << ": sum " << sum << ", diff " << diff;
-      SCOPED_TRACE(ss.str());
-      EXPECT_EQ(sum, WebRtcSpl_AddSatW32(a, b));
-      EXPECT_EQ(diff, WebRtcSpl_SubSatW32(a, b));
-    }
-  }
+
+#ifdef TEST_SPL_MATH_OPERATIONS
+void test_main() {
+
+    WebRtcSpl_Init();
+
+    // int A = 1134567892;
+    int32_t num = 117;
+    int32_t den = -5;
+    uint16_t denU = 5;
+
+    // libfvad: Sqrt functions not included
+    // EXPECT_EQ(33700, WebRtcSpl_Sqrt(A));
+    // EXPECT_EQ(33683, WebRtcSpl_SqrtFloor(A));
+
+    EXPECT_EQ(-91772805, WebRtcSpl_DivResultInQ31(den, num));
+    EXPECT_EQ(-23, WebRtcSpl_DivW32W16ResW16(num, (int16_t)den));
+    EXPECT_EQ(-23, WebRtcSpl_DivW32W16(num, (int16_t)den));
+    EXPECT_EQ(23u, WebRtcSpl_DivU32U16(num, denU));
+    EXPECT_EQ(0, WebRtcSpl_DivW32HiLow(128, 0, 256));
 }
+#endif // TEST_SPL_MATH_OPERATIONS
 
-TEST_F(SplTest, CountLeadingZeros32) {
-  EXPECT_EQ(32, WebRtcSpl_CountLeadingZeros32(0));
-  EXPECT_EQ(32, WebRtcSpl_CountLeadingZeros32_NotBuiltin(0));
-  for (int i = 0; i < 32; ++i) {
-    const uint32_t single_one = uint32_t{1} << i;
-    const uint32_t all_ones = 2 * single_one - 1;
-    EXPECT_EQ(31 - i, WebRtcSpl_CountLeadingZeros32(single_one));
-    EXPECT_EQ(31 - i, WebRtcSpl_CountLeadingZeros32_NotBuiltin(single_one));
-    EXPECT_EQ(31 - i, WebRtcSpl_CountLeadingZeros32(all_ones));
-    EXPECT_EQ(31 - i, WebRtcSpl_CountLeadingZeros32_NotBuiltin(all_ones));
-  }
-}
 
-TEST_F(SplTest, CountLeadingZeros64) {
-  EXPECT_EQ(64, WebRtcSpl_CountLeadingZeros64(0));
-  EXPECT_EQ(64, WebRtcSpl_CountLeadingZeros64_NotBuiltin(0));
-  for (int i = 0; i < 64; ++i) {
-    const uint64_t single_one = uint64_t{1} << i;
-    const uint64_t all_ones = 2 * single_one - 1;
-    EXPECT_EQ(63 - i, WebRtcSpl_CountLeadingZeros64(single_one));
-    EXPECT_EQ(63 - i, WebRtcSpl_CountLeadingZeros64_NotBuiltin(single_one));
-    EXPECT_EQ(63 - i, WebRtcSpl_CountLeadingZeros64(all_ones));
-    EXPECT_EQ(63 - i, WebRtcSpl_CountLeadingZeros64_NotBuiltin(all_ones));
-  }
-}
-
-TEST_F(SplTest, MathOperationsTest) {
-  int A = 1134567892;
-  int32_t num = 117;
-  int32_t den = -5;
-  uint16_t denU = 5;
-  EXPECT_EQ(33700, WebRtcSpl_Sqrt(A));
-  EXPECT_EQ(33683, WebRtcSpl_SqrtFloor(A));
-
-  EXPECT_EQ(-91772805, WebRtcSpl_DivResultInQ31(den, num));
-  EXPECT_EQ(-23, WebRtcSpl_DivW32W16ResW16(num, (int16_t)den));
-  EXPECT_EQ(-23, WebRtcSpl_DivW32W16(num, (int16_t)den));
-  EXPECT_EQ(23u, WebRtcSpl_DivU32U16(num, denU));
-  EXPECT_EQ(0, WebRtcSpl_DivW32HiLow(128, 0, 256));
-}
-
+// libfvad: test removed because these functions are not included in libfvad
+#if 0
 TEST_F(SplTest, BasicArrayOperationsTest) {
   const size_t kVectorSize = 4;
   int B[] = {4, 12, 133, 1100};
@@ -193,62 +203,50 @@ TEST_F(SplTest, BasicArrayOperationsTest) {
   int16_t bTmp16[kVectorSize];
   int32_t bTmp32[kVectorSize];
 
-  WebRtcSpl_MemSetW16(b16, 3, kVectorSize);
-  for (size_t kk = 0; kk < kVectorSize; ++kk) {
-    EXPECT_EQ(3, b16[kk]);
-  }
-  WebRtcSpl_ZerosArrayW16(b16, kVectorSize);
-  for (size_t kk = 0; kk < kVectorSize; ++kk) {
-    EXPECT_EQ(0, b16[kk]);
-  }
-  WebRtcSpl_MemSetW32(b32, 3, kVectorSize);
-  for (size_t kk = 0; kk < kVectorSize; ++kk) {
-    EXPECT_EQ(3, b32[kk]);
-  }
-  WebRtcSpl_ZerosArrayW32(b32, kVectorSize);
-  for (size_t kk = 0; kk < kVectorSize; ++kk) {
-    EXPECT_EQ(0, b32[kk]);
-  }
-  for (size_t kk = 0; kk < kVectorSize; ++kk) {
-    bTmp16[kk] = (int16_t)kk;
-    bTmp32[kk] = (int32_t)kk;
-  }
-  WEBRTC_SPL_MEMCPY_W16(b16, bTmp16, kVectorSize);
-  for (size_t kk = 0; kk < kVectorSize; ++kk) {
-    EXPECT_EQ(b16[kk], bTmp16[kk]);
-  }
-  //    WEBRTC_SPL_MEMCPY_W32(b32, bTmp32, kVectorSize);
-  //    for (int kk = 0; kk < kVectorSize; ++kk) {
-  //        EXPECT_EQ(b32[kk], bTmp32[kk]);
-  //    }
-  WebRtcSpl_CopyFromEndW16(b16, kVectorSize, 2, bTmp16);
-  for (size_t kk = 0; kk < 2; ++kk) {
-    EXPECT_EQ(static_cast<int16_t>(kk + 2), bTmp16[kk]);
-  }
-
-  for (size_t kk = 0; kk < kVectorSize; ++kk) {
-    b32[kk] = B[kk];
-    b16[kk] = (int16_t)B[kk];
-  }
-  WebRtcSpl_VectorBitShiftW32ToW16(bTmp16, kVectorSize, b32, 1);
-  for (size_t kk = 0; kk < kVectorSize; ++kk) {
-    EXPECT_EQ((B[kk] >> 1), bTmp16[kk]);
-  }
-  WebRtcSpl_VectorBitShiftW16(bTmp16, kVectorSize, b16, 1);
-  for (size_t kk = 0; kk < kVectorSize; ++kk) {
-    EXPECT_EQ((B[kk] >> 1), bTmp16[kk]);
-  }
-  WebRtcSpl_VectorBitShiftW32(bTmp32, kVectorSize, b32, 1);
-  for (size_t kk = 0; kk < kVectorSize; ++kk) {
-    EXPECT_EQ((B[kk] >> 1), bTmp32[kk]);
-  }
-
-  WebRtcSpl_MemCpyReversedOrder(&bTmp16[3], b16, kVectorSize);
-  for (size_t kk = 0; kk < kVectorSize; ++kk) {
-    EXPECT_EQ(b16[3 - kk], bTmp16[kk]);
-  }
+    WebRtcSpl_MemCpyReversedOrder(&bTmp16[3], b16, kVectorSize);
+    for (int kk = 0; kk < kVectorSize; ++kk) {
+        EXPECT_EQ(b16[3-kk], bTmp16[kk]);
+    }
 }
+#endif // 0
 
+
+// libfvad: test removed because these functions are not included in libfvad
+#if 0
+TEST_F(SplTest, ExeptionsHandlingMinMaxOperationsTest) {
+  // Test how the functions handle exceptional cases.
+  const int kVectorSize = 2;
+  int16_t vector16[kVectorSize] = {0};
+  int32_t vector32[kVectorSize] = {0};
+
+  EXPECT_EQ(-1, WebRtcSpl_MaxAbsValueW16(vector16, 0));
+  EXPECT_EQ(-1, WebRtcSpl_MaxAbsValueW16(NULL, kVectorSize));
+  EXPECT_EQ(WEBRTC_SPL_WORD16_MIN, WebRtcSpl_MaxValueW16(vector16, 0));
+  EXPECT_EQ(WEBRTC_SPL_WORD16_MIN, WebRtcSpl_MaxValueW16(NULL, kVectorSize));
+  EXPECT_EQ(WEBRTC_SPL_WORD16_MAX, WebRtcSpl_MinValueW16(vector16, 0));
+  EXPECT_EQ(WEBRTC_SPL_WORD16_MAX, WebRtcSpl_MinValueW16(NULL, kVectorSize));
+  EXPECT_EQ(-1, WebRtcSpl_MaxAbsValueW32(vector32, 0));
+  EXPECT_EQ(-1, WebRtcSpl_MaxAbsValueW32(NULL, kVectorSize));
+  EXPECT_EQ(WEBRTC_SPL_WORD32_MIN, WebRtcSpl_MaxValueW32(vector32, 0));
+  EXPECT_EQ(WEBRTC_SPL_WORD32_MIN, WebRtcSpl_MaxValueW32(NULL, kVectorSize));
+  EXPECT_EQ(WEBRTC_SPL_WORD32_MAX, WebRtcSpl_MinValueW32(vector32, 0));
+  EXPECT_EQ(WEBRTC_SPL_WORD32_MAX, WebRtcSpl_MinValueW32(NULL, kVectorSize));
+  EXPECT_EQ(-1, WebRtcSpl_MaxAbsIndexW16(vector16, 0));
+  EXPECT_EQ(-1, WebRtcSpl_MaxAbsIndexW16(NULL, kVectorSize));
+  EXPECT_EQ(-1, WebRtcSpl_MaxIndexW16(vector16, 0));
+  EXPECT_EQ(-1, WebRtcSpl_MaxIndexW16(NULL, kVectorSize));
+  EXPECT_EQ(-1, WebRtcSpl_MaxIndexW32(vector32, 0));
+  EXPECT_EQ(-1, WebRtcSpl_MaxIndexW32(NULL, kVectorSize));
+  EXPECT_EQ(-1, WebRtcSpl_MinIndexW16(vector16, 0));
+  EXPECT_EQ(-1, WebRtcSpl_MinIndexW16(NULL, kVectorSize));
+  EXPECT_EQ(-1, WebRtcSpl_MinIndexW32(vector32, 0));
+  EXPECT_EQ(-1, WebRtcSpl_MinIndexW32(NULL, kVectorSize));
+}
+#endif // 0
+
+
+// libfvad: test removed because these functions are not included in libfvad
+#if 0
 TEST_F(SplTest, MinMaxOperationsTest) {
   const size_t kVectorSize = 17;
 
@@ -339,7 +337,11 @@ TEST_F(SplTest, MinMaxOperationsTest) {
   EXPECT_EQ(6u, WebRtcSpl_MinIndexW16(vector16, kVectorSize));
   EXPECT_EQ(6u, WebRtcSpl_MinIndexW32(vector32, kVectorSize));
 }
+#endif // 0
 
+
+// libfvad: test removed because these functions are not included in libfvad
+#if 0
 TEST_F(SplTest, VectorOperationsTest) {
   const size_t kVectorSize = 4;
   int B[] = {4, 12, 133, 1100};
@@ -401,7 +403,11 @@ TEST_F(SplTest, VectorOperationsTest) {
 
   EXPECT_EQ(0, WebRtcSpl_GetScalingSquare(b16, kVectorSize, 1));
 }
+#endif // 0
 
+
+// libfvad: test removed because WebRtcSpl_LevinsonDurbin is not included
+#if 0
 TEST_F(SplTest, EstimatorsTest) {
   const size_t kOrder = 2;
   const int32_t unstable_filter[] = {4, 12, 133, 1100};
@@ -418,7 +424,11 @@ TEST_F(SplTest, EstimatorsTest) {
     EXPECT_EQ(refl_result[i], refl[i]);
   }
 }
+#endif // 0
 
+
+// libfvad: test removed because these functions are not included in libfvad
+#if 0
 TEST_F(SplTest, FilterTest) {
   const size_t kVectorSize = 4;
   const size_t kFilterOrder = 3;
@@ -456,7 +466,11 @@ TEST_F(SplTest, FilterTest) {
                                             kVectorSize, bStateLow, kVectorSize,
                                             data_out, bTmp16Low, kVectorSize));
 }
+#endif // 0
 
+
+// libfvad: test removed because these functions are not included in libfvad
+#if 0
 TEST_F(SplTest, RandTest) {
   const int kVectorSize = 4;
   int16_t BU[] = {3653, 12446, 8525, 30691};
@@ -471,12 +485,20 @@ TEST_F(SplTest, RandTest) {
     EXPECT_EQ(BU[kk], b16[kk]);
   }
 }
+#endif // 0
 
+
+// libfvad: test removed because WebRtcSpl_DotProductWithScale is not included
+#if 0
 TEST_F(SplTest, DotProductWithScaleTest) {
   EXPECT_EQ(605362796, WebRtcSpl_DotProductWithScale(vector16, vector16,
                                                      kVector16Size, 2));
 }
+#endif // 0
 
+
+// libfvad: test removed because these functions are not included in libfvad
+#if 0
 TEST_F(SplTest, CrossCorrelationTest) {
   // Note the function arguments relation specificed by API.
   const size_t kCrossCorrelationDimension = 3;
@@ -508,7 +530,11 @@ TEST_F(SplTest, CrossCorrelationTest) {
     EXPECT_EQ(expected[i], vector32[i]);
   }
 }
+#endif // 0
 
+
+// libfvad: test removed because these functions are not included in libfvad
+#if 0
 TEST_F(SplTest, AutoCorrelationTest) {
   int scale = 0;
   int32_t vector32[kVector16Size];
@@ -524,14 +550,20 @@ TEST_F(SplTest, AutoCorrelationTest) {
     EXPECT_EQ(expected[i], vector32[i]);
   }
 }
+#endif // 0
 
-TEST_F(SplTest, SignalProcessingTest) {
-  const size_t kVectorSize = 4;
-  int A[] = {1, 2, 33, 100};
-  const int16_t kHanning[4] = {2399, 8192, 13985, 16384};
-  int16_t b16[kVectorSize];
 
-  int16_t bTmp16[kVectorSize];
+#ifdef TEST_SPL_SIGNAL_PROCESSING
+void test_main() {
+
+    WebRtcSpl_Init();
+
+    const int kVectorSize = 4;
+    int A[] = {1, 2, 33, 100};
+    // const int16_t kHanning[4] = { 2399, 8192, 13985, 16384 };
+    int16_t b16[kVectorSize];
+
+    // int16_t bTmp16[kVectorSize];
 
   int bScale = 0;
 
@@ -539,24 +571,25 @@ TEST_F(SplTest, SignalProcessingTest) {
     b16[kk] = A[kk];
   }
 
-  // TODO(bjornv): Activate the Reflection Coefficient tests when refactoring.
-  //    WebRtcSpl_ReflCoefToLpc(b16, kVectorSize, bTmp16);
-  ////    for (int kk = 0; kk < kVectorSize; ++kk) {
-  ////        EXPECT_EQ(aTmp16[kk], bTmp16[kk]);
-  ////    }
-  //    WebRtcSpl_LpcToReflCoef(bTmp16, kVectorSize, b16);
-  ////    for (int kk = 0; kk < kVectorSize; ++kk) {
-  ////        EXPECT_EQ(a16[kk], b16[kk]);
-  ////    }
-  //    WebRtcSpl_AutoCorrToReflCoef(b32, kVectorSize, bTmp16);
-  ////    for (int kk = 0; kk < kVectorSize; ++kk) {
-  ////        EXPECT_EQ(aTmp16[kk], bTmp16[kk]);
-  ////    }
+    // TODO(bjornv): Activate the Reflection Coefficient tests when refactoring.
+//    WebRtcSpl_ReflCoefToLpc(b16, kVectorSize, bTmp16);
+////    for (int kk = 0; kk < kVectorSize; ++kk) {
+////        EXPECT_EQ(aTmp16[kk], bTmp16[kk]);
+////    }
+//    WebRtcSpl_LpcToReflCoef(bTmp16, kVectorSize, b16);
+////    for (int kk = 0; kk < kVectorSize; ++kk) {
+////        EXPECT_EQ(a16[kk], b16[kk]);
+////    }
+//    WebRtcSpl_AutoCorrToReflCoef(b32, kVectorSize, bTmp16);
+////    for (int kk = 0; kk < kVectorSize; ++kk) {
+////        EXPECT_EQ(aTmp16[kk], bTmp16[kk]);
+////    }
 
-  WebRtcSpl_GetHanningWindow(bTmp16, kVectorSize);
-  for (size_t kk = 0; kk < kVectorSize; ++kk) {
-    EXPECT_EQ(kHanning[kk], bTmp16[kk]);
-  }
+    // libfvad: removed because WebRtcSpl_GetHanningWindow is not included
+    // WebRtcSpl_GetHanningWindow(bTmp16, kVectorSize);
+    // for (int kk = 0; kk < kVectorSize; ++kk) {
+    //     EXPECT_EQ(kHanning[kk], bTmp16[kk]);
+    // }
 
   for (size_t kk = 0; kk < kVectorSize; ++kk) {
     b16[kk] = A[kk];
@@ -564,7 +597,11 @@ TEST_F(SplTest, SignalProcessingTest) {
   EXPECT_EQ(11094, WebRtcSpl_Energy(b16, kVectorSize, &bScale));
   EXPECT_EQ(0, bScale);
 }
+#endif // TEST_SPL_SIGNAL_PROCESSING
 
+
+// libfvad: Test removed because these functions are not included
+#if 0
 TEST_F(SplTest, FFTTest) {
   int16_t B[] = {1, 2, 33, 100, 2, 3, 34, 101, 3, 4, 35, 102, 4, 5, 36, 103};
 
@@ -581,11 +618,17 @@ TEST_F(SplTest, FFTTest) {
     //      EXPECT_EQ(A[kk], B[kk]);
   }
 }
+#endif // 0
 
-TEST_F(SplTest, Resample48WithSaturationTest) {
+
+#ifdef TEST_SPL_RESAMPLE_48
+void test_main() {
+
+  WebRtcSpl_Init();
+
   // The test resamples 3*kBlockSize number of samples to 2*kBlockSize number
   // of samples.
-  const size_t kBlockSize = 16;
+  #define kBlockSize 16
 
   // Saturated input vector of 48 samples.
   const int32_t kVectorSaturated[3 * kBlockSize + 7] = {
@@ -603,24 +646,27 @@ TEST_F(SplTest, Resample48WithSaturationTest) {
 
   // After bit shift with saturation, |out_vector_w16| is saturated.
 
-  const int16_t kRefValue16kHz1 = -32768;
-  const int16_t kRefValue16kHz2 = 32767;
+  //const int16_t kRefValue16kHz1 = -32768;
+  //const int16_t kRefValue16kHz2 = 32767;
   // Vector for storing output.
   int32_t out_vector[2 * kBlockSize];
-  int16_t out_vector_w16[2 * kBlockSize];
+  // int16_t out_vector_w16[2 * kBlockSize];
 
   WebRtcSpl_Resample48khzTo32khz(kVectorSaturated, out_vector, kBlockSize);
-  WebRtcSpl_VectorBitShiftW32ToW16(out_vector_w16, 2 * kBlockSize, out_vector,
-                                   15);
+
+  // function not included in libfvad:
+  // WebRtcSpl_VectorBitShiftW32ToW16(out_vector_w16, 2 * kBlockSize, out_vector,
+  //                                 15);
 
   // Comparing output values against references. The values at position
   // 12-15 are skipped to account for the filter lag.
   for (size_t i = 0; i < 12; ++i) {
     EXPECT_EQ(kRefValue32kHz1, out_vector[i]);
-    EXPECT_EQ(kRefValue16kHz1, out_vector_w16[i]);
+    //EXPECT_EQ(kRefValue16kHz1, out_vector_w16[i]);
   }
   for (size_t i = 16; i < 2 * kBlockSize; ++i) {
     EXPECT_EQ(kRefValue32kHz2, out_vector[i]);
-    EXPECT_EQ(kRefValue16kHz2, out_vector_w16[i]);
+    //EXPECT_EQ(kRefValue16kHz2, out_vector_w16[i]);
   }
 }
+#endif

@@ -30,8 +30,27 @@
 #define WEBRTC_SPL_MAX(A, B) (A > B ? A : B)  // Get max value
 // TODO(kma/bjorn): For the next two macros, investigate how to correct the code
 // for inputs of a = WEBRTC_SPL_WORD16_MIN or WEBRTC_SPL_WORD32_MIN.
-#define WEBRTC_SPL_ABS_W16(a) (((int16_t)a >= 0) ? ((int16_t)a) : -((int16_t)a))
-#define WEBRTC_SPL_ABS_W32(a) (((int32_t)a >= 0) ? ((int32_t)a) : -((int32_t)a))
+#define WEBRTC_SPL_ABS_W16(a) \
+    (((int16_t)a >= 0) ? ((int16_t)a) : -((int16_t)a))
+#define WEBRTC_SPL_ABS_W32(a) \
+    (((int32_t)a >= 0) ? ((int32_t)a) : -((int32_t)a))
+
+ // libfvad: removed because not needed;
+ // we would have to configure WEBRTC_ARCH_LITTLE_ENDIAN
+#if 0
+#ifdef WEBRTC_ARCH_LITTLE_ENDIAN
+#define WEBRTC_SPL_GET_BYTE(a, nr)  (((int8_t *)a)[nr])
+#define WEBRTC_SPL_SET_BYTE(d_ptr, val, index) \
+    (((int8_t *)d_ptr)[index] = (val))
+#else
+#define WEBRTC_SPL_GET_BYTE(a, nr) \
+    ((((int16_t *)a)[nr >> 1]) >> (((nr + 1) & 0x1) * 8) & 0x00ff)
+#define WEBRTC_SPL_SET_BYTE(d_ptr, val, index) \
+    ((int16_t *)d_ptr)[index >> 1] = \
+    ((((int16_t *)d_ptr)[index >> 1]) \
+    & (0x00ff << (8 * ((index) & 0x1)))) | (val << (8 * ((index + 1) & 0x1)))
+#endif
+#endif // 0
 
 #define WEBRTC_SPL_MUL(a, b) ((int32_t)((int32_t)(a) * (int32_t)(b)))
 #define WEBRTC_SPL_UMUL(a, b) ((uint32_t)((uint32_t)(a) * (uint32_t)(b)))
@@ -102,7 +121,12 @@ extern "C" {
 // C code will be assigned.
 // Note that this function MUST be called in any application that uses SPL
 // functions.
-void WebRtcSpl_Init(void);
+// libfvad: WebRtcSpl_Init has been removed, the following empty function
+// is for compatibility
+static inline void WebRtcSpl_Init() {}
+
+// Get SPL Version
+int16_t WebRtcSpl_get_version(char* version, int16_t length_in_bytes);
 
 int16_t WebRtcSpl_GetScalingSquare(int16_t* in_vector,
                                    size_t in_vector_length,
