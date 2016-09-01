@@ -8,24 +8,15 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <stdlib.h>
+#include "vad_unittest.h"
+#include "../src/vad/vad_filterbank.h"
 
-#include "common_audio/vad/vad_unittest.h"
-#include "test/gtest.h"
 
-extern "C" {
-#include "common_audio/vad/vad_core.h"
-#include "common_audio/vad/vad_filterbank.h"
-}
+#define kNumValidFrameLengths 3
 
-namespace webrtc {
-namespace test {
-
-const int kNumValidFrameLengths = 3;
-
-TEST_F(VadTest, vad_filterbank) {
-  VadInstT* self = reinterpret_cast<VadInstT*>(malloc(sizeof(VadInstT)));
-  static const int16_t kReference[kNumValidFrameLengths] = {48, 11, 11};
+void test_main() {
+  VadInstT* self = malloc(sizeof(VadInstT));
+  static const int16_t kReference[kNumValidFrameLengths] = { 48, 11, 11 };
   static const int16_t kFeatures[kNumValidFrameLengths * kNumChannels] = {
       1213, 759,  587,  462,  434,  272,  1479, 1385, 1291,
       1200, 1103, 1099, 1732, 1692, 1681, 1629, 1436, 1436};
@@ -87,5 +78,3 @@ TEST_F(VadTest, vad_filterbank) {
 
   free(self);
 }
-}  // namespace test
-}  // namespace webrtc

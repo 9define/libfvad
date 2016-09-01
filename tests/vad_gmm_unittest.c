@@ -8,17 +8,11 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "common_audio/vad/vad_unittest.h"
-#include "test/gtest.h"
+#include "vad_unittest.h"
+#include "../src/vad/vad_gmm.h"
 
-extern "C" {
-#include "common_audio/vad/vad_gmm.h"
-}
 
-namespace webrtc {
-namespace test {
-
-TEST_F(VadTest, vad_gmm) {
+void test_main() {
   int16_t delta = 0;
   // Input value at mean.
   EXPECT_EQ(1048576, WebRtcVad_GaussianProbability(0, 0, 128, &delta));
@@ -40,5 +34,3 @@ TEST_F(VadTest, vad_gmm) {
   EXPECT_EQ(0, WebRtcVad_GaussianProbability(105, 0, 128, &delta));
   EXPECT_EQ(13440, delta);
 }
-}  // namespace test
-}  // namespace webrtc
