@@ -62,134 +62,64 @@ static __inline int WebRtcSpl_CountLeadingZeros64(uint64_t n) {
 #endif
 }
 
-#if 0 // #ifdef WEBRTC_ARCH_ARM_V7
-#include "webrtc/common_audio/signal_processing/include/spl_inl_armv7.h"
-#else
 
-#if 0 // #if defined(MIPS32_LE)
-#include "webrtc/common_audio/signal_processing/include/spl_inl_mips.h"
-#endif
-
-#if 1 // #if !defined(MIPS_DSP_R1_LE)
-static __inline int16_t WebRtcSpl_SatW32ToW16(int32_t value32) {
-  int16_t out16 = (int16_t)value32;
-
-  if (value32 > 32767)
-    out16 = 32767;
-  else if (value32 < -32768)
-    out16 = -32768;
-
-  return out16;
-}
-
-static __inline int32_t WebRtcSpl_AddSatW32(int32_t a, int32_t b) {
-  // Do the addition in unsigned numbers, since signed overflow is undefined
-  // behavior.
-  const int32_t sum = (int32_t)((uint32_t)a + (uint32_t)b);
-
-  // a + b can't overflow if a and b have different signs. If they have the
-  // same sign, a + b also has the same sign iff it didn't overflow.
-  if ((a < 0) == (b < 0) && (a < 0) != (sum < 0)) {
-    // The direction of the overflow is obvious from the sign of a + b.
-    return sum < 0 ? INT32_MAX : INT32_MIN;
-  }
-  return sum;
-}
-
-static __inline int32_t WebRtcSpl_SubSatW32(int32_t a, int32_t b) {
-  // Do the subtraction in unsigned numbers, since signed overflow is undefined
-  // behavior.
-  const int32_t diff = (int32_t)((uint32_t)a - (uint32_t)b);
-
-  // a - b can't overflow if a and b have the same sign. If they have different
-  // signs, a - b has the same sign as a iff it didn't overflow.
-  if ((a < 0) != (b < 0) && (a < 0) != (diff < 0)) {
-    // The direction of the overflow is obvious from the sign of a - b.
-    return diff < 0 ? INT32_MAX : INT32_MIN;
-  }
-  return diff;
-}
-
-static __inline int16_t WebRtcSpl_AddSatW16(int16_t a, int16_t b) {
-  return WebRtcSpl_SatW32ToW16((int32_t)a + (int32_t)b);
-}
-
-static __inline int16_t WebRtcSpl_SubSatW16(int16_t var1, int16_t var2) {
-  return WebRtcSpl_SatW32ToW16((int32_t)var1 - (int32_t)var2);
-}
-#endif  // #if !defined(MIPS_DSP_R1_LE)
-
-#if 1 // #if !defined(MIPS32_LE)
 static __inline int16_t WebRtcSpl_GetSizeInBits(uint32_t n) {
-  return 32 - WebRtcSpl_CountLeadingZeros32(n);
+  int16_t bits;
+
+  if (0xFFFF0000 & n) {
+    bits = 16;
+  } else {
+    bits = 0;
+  }
+  if (0x0000FF00 & (n >> bits)) bits += 8;
+  if (0x000000F0 & (n >> bits)) bits += 4;
+  if (0x0000000C & (n >> bits)) bits += 2;
+  if (0x00000002 & (n >> bits)) bits += 1;
+  if (0x00000001 & (n >> bits)) bits += 1;
+
+  return bits;
 }
 
-// Return the number of steps a can be left-shifted without overflow,
-// or 0 if a == 0.
 static __inline int16_t WebRtcSpl_NormW32(int32_t a) {
-  return a == 0 ? 0 : WebRtcSpl_CountLeadingZeros32(a < 0 ? ~a : a) - 1;
+  int16_t zeros;
+
+  if (a == 0) {
+    return 0;
+  }
+  else if (a < 0) {
+    a = ~a;
+  }
+
+  if (!(0xFFFF8000 & a)) {
+    zeros = 16;
+  } else {
+    zeros = 0;
+  }
+  if (!(0xFF800000 & (a << zeros))) zeros += 8;
+  if (!(0xF8000000 & (a << zeros))) zeros += 4;
+  if (!(0xE0000000 & (a << zeros))) zeros += 2;
+  if (!(0xC0000000 & (a << zeros))) zeros += 1;
+
+  return zeros;
 }
 
-// Return the number of steps a can be left-shifted without overflow,
-// or 0 if a == 0.
 static __inline int16_t WebRtcSpl_NormU32(uint32_t a) {
-  return a == 0 ? 0 : WebRtcSpl_CountLeadingZeros32(a);
-}
+  int16_t zeros;
 
-// Return the number of steps a can be left-shifted without overflow,
-// or 0 if a == 0.
-static __inline int16_t WebRtcSpl_NormW16(int16_t a) {
-  const int32_t a32 = a;
-  return a == 0 ? 0 : WebRtcSpl_CountLeadingZeros32(a < 0 ? ~a32 : a32) - 17;
-}
+  if (a == 0) return 0;
 
-static __inline int32_t WebRtc_MulAccumW16(int16_t a, int16_t b, int32_t c) {
-  return (a * b + c);
-}
-#endif  // #if !defined(MIPS32_LE)
-
-#endif  // WEBRTC_ARCH_ARM_V7
-
-// The following functions have no optimized versions.
-// TODO(kma): Consider saturating add/sub instructions in X86 platform.
-#if 1 // #if !defined(MIPS_DSP_R1_LE)
-static __inline int32_t WebRtcSpl_AddSatW32(int32_t l_var1, int32_t l_var2) {
-  int32_t l_sum;
-
-  // Perform long addition
-  l_sum = l_var1 + l_var2;
-
-  if (l_var1 < 0) {  // Check for underflow.
-    if ((l_var2 < 0) && (l_sum >= 0)) {
-        l_sum = (int32_t)0x80000000;
-    }
-  } else {  // Check for overflow.
-    if ((l_var2 > 0) && (l_sum < 0)) {
-        l_sum = (int32_t)0x7FFFFFFF;
-    }
+  if (!(0xFFFF0000 & a)) {
+    zeros = 16;
+  } else {
+    zeros = 0;
   }
+  if (!(0xFF000000 & (a << zeros))) zeros += 8;
+  if (!(0xF0000000 & (a << zeros))) zeros += 4;
+  if (!(0xC0000000 & (a << zeros))) zeros += 2;
+  if (!(0x80000000 & (a << zeros))) zeros += 1;
 
-  return l_sum;
+  return zeros;
 }
 
-static __inline int32_t WebRtcSpl_SubSatW32(int32_t l_var1, int32_t l_var2) {
-  int32_t l_diff;
-
-  // Perform subtraction.
-  l_diff = l_var1 - l_var2;
-
-  if (l_var1 < 0) {  // Check for underflow.
-    if ((l_var2 > 0) && (l_diff > 0)) {
-      l_diff = (int32_t)0x80000000;
-    }
-  } else {  // Check for overflow.
-    if ((l_var2 < 0) && (l_diff < 0)) {
-      l_diff = (int32_t)0x7FFFFFFF;
-    }
-  }
-
-  return l_diff;
-}
-#endif  // #if !defined(MIPS_DSP_R1_LE)
 
 #endif  // WEBRTC_SPL_SPL_INL_H_

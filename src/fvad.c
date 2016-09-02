@@ -33,7 +33,6 @@ int fvad_Create(VadInst** handle) {
     return -1;
   }
 
-  WebRtcSpl_Init();
   self->init_flag = 0;
 
   return (VadInst*)self;
