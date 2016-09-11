@@ -11,7 +11,7 @@
 #ifndef COMMON_AUDIO_VAD_VAD_UNITTEST_H_
 #define COMMON_AUDIO_VAD_VAD_UNITTEST_H_
 
-#include "test.h"
+#include "test_common.h"
 
 // Modes we support
 static const int kModes[] = { 0, 1, 2, 3 };
