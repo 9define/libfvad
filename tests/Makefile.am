@@ -17,8 +17,7 @@ check_PROGRAMS = \
 	vad_filterbank_unittest \
 	vad_gmm_unittest \
 	vad_sp_unittest \
-	vad_api_unittest \
-	vad_valid_rates
+	vad_api_unittest
 
 
 TESTS = $(check_PROGRAMS) wavtest.sh
@@ -55,7 +54,3 @@ vad_filterbank_unittest_SOURCES = vad_filterbank_unittest.c vad_unittest.c
 
 vad_api_unittest_SOURCES = vad_unittest.c
 vad_api_unittest_CPPFLAGS = -DTEST_VAD_API
-
-vad_valid_rates_SOURCES = vad_unittest.c
-vad_valid_rates_CPPFLAGS = -DTEST_VAD_VALID_RATES
-
