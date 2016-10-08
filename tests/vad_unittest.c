@@ -46,7 +46,7 @@ void test_main() {
   // This API test runs through the APIs for all possible valid and invalid
   // combinations.
 
-  Fvad* handle = fvad_create();
+  Fvad* handle = fvad_new();
   int16_t zeros[kMaxFrameLength] = { 0 };
 
   // Construct a speech signal that will trigger the VAD in all modes. It is
@@ -56,7 +56,7 @@ void test_main() {
     speech[i] = static_cast<int16_t>(i * i);
   }
 
-  // fvad_create()
+  // fvad_new()
   EXPECT_TRUE(handle);
 
   // fvad_set_mode() invalid modes tests. Tries smallest supported value
@@ -90,7 +90,7 @@ void test_main() {
     }
   }
 
-  fvad_destroy(handle);
+  fvad_free(handle);
 }
 #endif // TEST_VAD_API
 
