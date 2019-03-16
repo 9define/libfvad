@@ -11,6 +11,7 @@ libfvad_int_la_SOURCES = \
 	signal_processing/resample_fractional.c \
 	signal_processing/signal_processing_library.h \
 	signal_processing/spl_inl.h \
+	rtc_base/compile_assert_c.h \
 	vad/vad_core.h \
 	vad/vad_core.c \
 	vad/vad_filterbank.h \
@@ -25,6 +26,7 @@ libfvad_int_la_SOURCES = \
 # main public libary
 lib_LTLIBRARIES = libfvad.la
 libfvad_la_SOURCES =
+libfvad_la_CPPFLAGS = -Wno-signed-integer-overflow -Wno-implicit-int
 libfvad_la_LDFLAGS = -version-info 0:0:0 -export-symbols-regex '^fvad_' -no-undefined
 libfvad_la_LIBADD = libfvad_int.la
 
