@@ -32,6 +32,8 @@ common_audio/vad/vad_unittest.cc
 common_audio/vad/vad_unittest.h
 common_audio/vad/webrtc_vad.c
 
+rtc_base/compile_assert_c.h
+
 LICENSE
 AUTHORS
 PATENTS
