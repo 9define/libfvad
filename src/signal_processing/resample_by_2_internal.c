@@ -27,8 +27,7 @@ static const int16_t kResampleAllpass[2][3] = {
 // input:  int32_t (shifted 15 positions to the left, + offset 16384) OVERWRITTEN!
 // output: int16_t (saturated) (of length len/2)
 // state:  filter state array; length = 8
-
-WebRtcSpl_DownBy2IntToShort(int32_t *in, int32_t len, int16_t *out,
+void WebRtcSpl_DownBy2IntToShort(int32_t *in, int32_t len, int16_t *out,
                             int32_t *state)
 {
     int32_t tmp0, tmp1, diff;
@@ -122,8 +121,7 @@ WebRtcSpl_DownBy2IntToShort(int32_t *in, int32_t len, int16_t *out,
 // input:  int16_t
 // output: int32_t (shifted 15 positions to the left, + offset 16384) (of length len/2)
 // state:  filter state array; length = 8
-
-WebRtcSpl_DownBy2ShortToInt(const int16_t *in,
+void WebRtcSpl_DownBy2ShortToInt(const int16_t *in,
                             int32_t len,
                             int32_t *out,
                             int32_t *state)
@@ -201,8 +199,7 @@ WebRtcSpl_DownBy2ShortToInt(const int16_t *in,
 // input:  int32_t (shifted 15 positions to the left, + offset 16384)
 // output: int32_t (normalized, not saturated)
 // state:  filter state array; length = 8
-
-WebRtcSpl_LPBy2IntToInt(const int32_t* in, int32_t len, int32_t* out,
+void WebRtcSpl_LPBy2IntToInt(const int32_t* in, int32_t len, int32_t* out,
                         int32_t* state)
 {
     int32_t tmp0, tmp1, diff;
